@@ -23,7 +23,7 @@
 /* SDL Headers */
 #include <SDL/SDL.h>
 
-#define PT_SIZE 72.0
+#define PT_SIZE 144.0
 #define DPI     90
 
 #define VIDEO_WIDTH 800
@@ -129,15 +129,19 @@ int main(const int argc, const char** argv) {
     glyph_positions = hb_buffer_get_glyph_positions(hb_buff, &glyph_count);
     cairo_glyphs = malloc(glyph_count * sizeof(cairo_glyph_t));
 
-    x = 80;
-    y = 80;
+    x = 100;
+    y = 180;
+    
     /* Copy the Harfbuzz Glyph position data to Cairo position data */
     for( i = 0; i < glyph_count; ++i) {
-        string_width_in_px += glyph_positions[i].x_advance/64;
+        string_width_in_px += glyph_positions[i].x_advance;
+        
         cairo_glyphs[i].index = glyph_info[i].codepoint;
+        
         cairo_glyphs[i].x = x + (glyph_positions[i].x_offset);
         cairo_glyphs[i].y = y - (glyph_positions[i].y_offset);
-        x += glyph_positions[i].x_advance;
+        
+        x += glyph_positions[i].x_advance - 20;
         y -= glyph_positions[i].y_advance;
     }
 
@@ -147,10 +151,14 @@ int main(const int argc, const char** argv) {
 
     /* Set the text colour to black */
     cairo_set_source_rgba(cr, 0 , 0, 0, 1);
+
+    /* Set the font and size */
     cairo_set_font_face(cr, cairo_font);
     cairo_set_font_size(cr, PT_SIZE);
 
+    /* Draw the glphs on screen */
     cairo_show_glyphs(cr, cairo_glyphs, glyph_count);
+
     free(cairo_glyphs);
 
     hb_buffer_destroy(hb_buff);
