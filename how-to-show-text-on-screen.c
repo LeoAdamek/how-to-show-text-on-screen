@@ -47,6 +47,8 @@ int main(const int argc, const char** argv) {
     cairo_t *cr;
     hb_buffer_t *hb_buff;
 
+    SDL_Event event;
+
     /* Text rendering data */
     unsigned int glyph_count, string_width_in_px;
     hb_glyph_info_t *glyph_info;
@@ -54,6 +56,7 @@ int main(const int argc, const char** argv) {
     cairo_glyph_t *cairo_glyphs;
 
     unsigned int i,x,y;
+    int done = 0;
 
     assert(!FT_Init_FreeType(&library));
 
@@ -110,9 +113,10 @@ int main(const int argc, const char** argv) {
     /* Create a buffer in which to lay out the text */
     hb_buff = hb_buffer_create();
     hb_buffer_set_unicode_funcs(hb_buff, hb_icu_get_unicode_funcs());
+
     hb_buffer_set_direction(hb_buff, HB_DIRECTION_LTR);
     hb_buffer_set_script(hb_buff, HB_SCRIPT_DEVANAGARI);
-    hb_buffer_set_language(hb_buff, hb_language_from_string("hi", 2));
+    hb_buffer_set_language(hb_buff, hb_language_from_string("hi", strlen("hi")));
 
     /* Put our text in the buffer so Harfbuzz knows what we want to show */
     hb_buffer_add_utf16(hb_buff, text, u_strlen(text), 0, u_strlen(text));
@@ -123,16 +127,18 @@ int main(const int argc, const char** argv) {
     /* Get the data so we can use it in cairo */
     glyph_info = hb_buffer_get_glyph_infos(hb_buff, &glyph_count);
     glyph_positions = hb_buffer_get_glyph_positions(hb_buff, &glyph_count);
-    cairo_glyphs = (cairo_glyph_t*)calloc(glyph_count, sizeof(cairo_glyph_t));
+    cairo_glyphs = malloc(glyph_count * sizeof(cairo_glyph_t));
 
+    x = 80;
+    y = 80;
     /* Copy the Harfbuzz Glyph position data to Cairo position data */
     for( i = 0; i < glyph_count; ++i) {
         string_width_in_px += glyph_positions[i].x_advance/64;
         cairo_glyphs[i].index = glyph_info[i].codepoint;
-        cairo_glyphs[i].x = x + (glyph_positions[i].x_offset/64);
-        cairo_glyphs[i].y = y - (glyph_positions[i].y_offset/64);
-        x += glyph_positions[i].x_advance/64;
-        y -= glyph_positions[i].y_advance/64;
+        cairo_glyphs[i].x = x + (glyph_positions[i].x_offset);
+        cairo_glyphs[i].y = y - (glyph_positions[i].y_offset);
+        x += glyph_positions[i].x_advance;
+        y -= glyph_positions[i].y_advance;
     }
 
     /* We no longer need these values so we can free them */
@@ -140,7 +146,7 @@ int main(const int argc, const char** argv) {
     free(glyph_positions);
 
     /* Set the text colour to black */
-    cairo_set_source_rgba(cr, 0.0 , 0.0, 0.0, 1.0);
+    cairo_set_source_rgba(cr, 0 , 0, 0, 1);
     cairo_set_font_face(cr, cairo_font);
     cairo_set_font_size(cr, PT_SIZE);
 
@@ -148,6 +154,7 @@ int main(const int argc, const char** argv) {
     free(cairo_glyphs);
 
     hb_buffer_destroy(hb_buff);
+    hb_font_destroy(hb_font);
 
     /* Show our rendered text on screen */
     SDL_BlitSurface(surface, NULL, screen, NULL);
@@ -156,7 +163,23 @@ int main(const int argc, const char** argv) {
     cairo_surface_destroy(cairo_surface);
     cairo_destroy(cr);
 
-    while(1);
+    /* Wait for quit button pressed or ESC key. */
+    while(!done) {
+        /* Keep the SDL window open until we quit */
+        while(SDL_PollEvent(&event)) {
+            switch(event.type) {
+            case SDL_KEYDOWN:
+                if (event.key.keysym.sym == SDLK_ESCAPE) done = 1;
+                break;
+            case SDL_QUIT:
+                done = 1;
+                break;
+
+            }
+            
+            SDL_Delay(1);
+        }
+    }
 
     FT_Done_Face(font);
     FT_Done_FreeType(library);
