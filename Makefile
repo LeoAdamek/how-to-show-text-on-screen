@@ -1,7 +1,7 @@
 CC=clang
 LD=clang
 
-LIBS=harfbuzz icu-uc freetype2 cairo sdl
+LIBS=icu-uc freetype2 cairo sdl harfbuzz harfbuzz-icu
 
 CFLAGS=$(shell pkg-config --cflags $(LIBS))
 LDFLAGS=$(shell pkg-config --libs $(LIBS))
@@ -10,7 +10,7 @@ SOURCES=how-to-show-text-on-screen.c
 OBJECTS=$(patsubst %.c,%.o,$(SOURCES))
 
 %.o: %.c
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) -g -c -o $@ $<
 
 ./how-to-show-text-on-screen: $(OBJECTS)
 	$(LD) $(LDFLAGS) -o $@ $^
